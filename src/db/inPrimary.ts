@@ -2,7 +2,7 @@ import cluster from 'node:cluster';
 import { DataStorage } from './dataStorage';
 import { UserDb, DbMessage } from '../types';
 
-export function startDb(): void {
+export function startDb(): DataStorage | null {
   const { workers } = cluster;
   if (workers) {
     const storage = new DataStorage();
@@ -22,5 +22,9 @@ export function startDb(): void {
         });
       }
     }
+
+    return storage;
   }
+
+  return null;
 }

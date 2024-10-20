@@ -1,52 +1,67 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { handleRequest } from '../routes/routes';
+import { parseRequest } from '../routes/routes';
 import { DbMessage } from '../types';
+import { DataStorage } from '../db/dataStorage';
+import { callDb } from '../db/inSingle';
 
 export class App {
-  private readonly server: ReturnType<typeof createServer>;
+  private readonly server!: ReturnType<typeof createServer>;
   public port: number;
   private readonly workerIndex: number;
-  private readonly actions: Map<string, (msg: DbMessage) => void>;
+  private readonly isWorker: boolean;
+  private readonly actions?: Map<string, (msg: DbMessage) => void>;
+  private readonly storage?: DataStorage;
 
-  constructor() {
-    this.port = parseInt(process.env.WORKER_PORT || '4001', 10);
-    this.workerIndex = parseInt(process.env.WORKER_INDEX || '1', 10);
+  constructor(port: number, isWorker: boolean) {
+    this.port = port;
+    this.isWorker = isWorker;
     this.server = createServer(this.handleRequest.bind(this));
-    this.actions = new Map();
-
-    process.on('message', (msg: DbMessage) => {
-      const action = this.actions.get(msg.id);
-      if (action) {
-        action(msg);
-        this.actions.delete(msg.id);
-      }
-    });
+    this.workerIndex = parseInt(process.env.WORKER_INDEX || '1', 10);
+    if (this.isWorker) {
+      this.actions = new Map();
+      process.on('message', (msg: DbMessage) => {
+        const action = this.actions?.get(msg.id);
+        if (action) {
+          action(msg);
+          this.actions?.delete(msg.id);
+        }
+      });
+    } else {
+      this.storage = new DataStorage();
+    }
   }
 
   private async handleRequest(req: IncomingMessage, res: ServerResponse) {
-    console.log(
-      `Worker ${this.workerIndex} on port ${this.port} (PID: ${process.pid}) handling request: ${req.method} ${req.url}`
-    );
-    const data = await handleRequest(req);
+    const outMsg = this.isWorker
+      ? `Worker ${this.workerIndex} on port ${this.port} (PID: ${process.pid}) handling request: ${req.method}`
+      : `Handling request: ${req.method}`;
+
+    console.log(outMsg);
+
+    const data = await parseRequest(req);
     if (data.error) {
       res.writeHead(data.code ?? 404, { 'Content-Type': 'application/json' });
       res.end(data.error.message ?? '');
-    } else {
-      this.actions.set(data.id, (msg) => {
+    } else if (this.isWorker) {
+      this.actions?.set(data.id, (msg) => {
         res.writeHead(msg.code ?? 200, { 'Content-Type': 'application/json' });
         res.end(msg.data ? JSON.stringify(msg.data) : '');
       });
-
       process.send?.(data);
+    } else if (this.storage) {
+      const msg = callDb(data, this.storage);
+      res.writeHead(msg.code ?? 200, { 'Content-Type': 'application/json' });
+      res.end(msg.data ? JSON.stringify(msg.data) : '');
     }
   }
 
   public listen(): void {
     this.server.listen(this.port, () => {
-      console.log(
-        `Worker ${this.workerIndex} is running on port ${this.port} (PID: ${process.pid})`
-      );
-      process.send?.('worker-ready');
+      const outMsg = this.isWorker
+        ? `Worker ${this.workerIndex} is running on port ${this.port} (PID: ${process.pid})`
+        : `Server is running on port ${this.port} (PID: ${process.pid})`;
+      console.log(outMsg);
+      if (this.isWorker) process.send?.('worker-ready');
     });
   }
 }

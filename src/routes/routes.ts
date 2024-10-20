@@ -22,7 +22,7 @@ async function getRequestBody(req: IncomingMessage): Promise<unknown> {
   });
 }
 
-export async function handleRequest(req: IncomingMessage): Promise<DbMessage> {
+export async function parseRequest(req: IncomingMessage): Promise<DbMessage> {
   const parsedUrl = parse(req.url || '', true);
   const { pathname } = parsedUrl;
   const id = `${process.pid}-${Date.now()}`;
