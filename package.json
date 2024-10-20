@@ -26,11 +26,13 @@
   },
   "homepage": "https://github.com/SunSundr/nodejs-simple-CRUD-API#readme",
   "dependencies": {
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
     "@types/node": "^22.7.6",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "clean-webpack-plugin": "^4.0.0",

@@ -14,7 +14,10 @@
   "rules": {
     "@typescript-eslint/explicit-module-boundary-types": "error",
     "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/lines-between-class-members": "off",
     "@typescript-eslint/no-shadow": "error",
+    "@typescript-eslint/no-loop-func": "off",
+    "@typescript-eslint/prefer-readonly": "error",
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     "class-methods-use-this": "off",
     "comma-dangle": "off",
@@ -57,6 +60,11 @@
         "blankLine": "always",
         "prev": "*",
         "next": "return"
+      },
+      {
+        "blankLine": "any",
+        "prev": "block-like",
+        "next": "break"
       }
     ],
     "prettier/prettier": [
