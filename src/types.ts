@@ -1,4 +1,5 @@
 import type { DataStorage } from './db/dataStorage';
+import type { ResponseError } from './utils/errors';
 
 export interface UserDb {
   username: string;
@@ -17,5 +18,5 @@ export interface DbMessage {
   code?: number;
   action: keyof DataStorage;
   data?: unknown;
-  error?: Error;
+  error?: ResponseError;
 }

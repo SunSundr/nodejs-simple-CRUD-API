@@ -3,6 +3,8 @@ import { parseRequest } from '../routes/routes';
 import { DbMessage } from '../types';
 import { DataStorage } from '../db/dataStorage';
 import { callDb } from '../db/inSingle';
+// import { MESSAGES } from '../config';
+import { errorMessage } from '../utils/errors';
 
 export class App {
   private readonly server!: ReturnType<typeof createServer>;
@@ -39,9 +41,10 @@ export class App {
     console.log(outMsg);
 
     const data = await parseRequest(req);
+
     if (data.error) {
-      res.writeHead(data.code ?? 404, { 'Content-Type': 'application/json' });
-      res.end(data.error.message ?? '');
+      res.writeHead(data.error.statusCode ?? 500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(errorMessage(data.error.message)));
     } else if (this.isWorker) {
       this.actions?.set(data.id, (msg) => {
         res.writeHead(msg.code ?? 200, { 'Content-Type': 'application/json' });
@@ -50,8 +53,11 @@ export class App {
       process.send?.(data);
     } else if (this.storage) {
       const msg = callDb(data, this.storage);
-      res.writeHead(msg.code ?? 200, { 'Content-Type': 'application/json' });
-      res.end(msg.data ? JSON.stringify(msg.data) : '');
+      res.writeHead(msg.error ? msg.error.statusCode : (msg.code ?? 200), {
+        'Content-Type': 'application/json',
+      });
+      const strData = msg.data ? JSON.stringify(msg.data) : '';
+      res.end(msg.error ? JSON.stringify(errorMessage(msg.error.message)) : strData);
     }
   }
 
