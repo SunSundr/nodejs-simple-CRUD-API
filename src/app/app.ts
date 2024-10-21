@@ -3,7 +3,6 @@ import { parseRequest } from '../routes/routes';
 import { DbMessage } from '../types';
 import { DataStorage } from '../db/dataStorage';
 import { callDb } from '../db/inSingle';
-// import { MESSAGES } from '../config';
 import { errorMessage } from '../utils/errors';
 
 export class App {
