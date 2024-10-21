@@ -9,10 +9,10 @@ export enum LogPrefix {
 
 export function log(prefix: LogPrefix, ...args: unknown[]): void {
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`${prefix} `, ...args);
+    console.log(prefix, ...args);
   }
 }
 
 export function err(prefix: LogPrefix, ...args: unknown[]): void {
-  console.error(`${prefix} `, ...args);
+  console.error(prefix, ...args);
 }

@@ -11,7 +11,7 @@ import { log, LogPrefix } from './utils/logger';
 dotenv.config();
 const startPort = getPort(process.env.GRUD_API_PORT);
 
-const isMultiMode = process.env.MODE !== 'multi';
+const isMultiMode = process.env.MODE === 'multi';
 
 if (isMultiMode && cluster.isPrimary) {
   console.log(`Primary ${styleText('yellow', String(process.pid))} is running...`);

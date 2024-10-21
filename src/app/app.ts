@@ -35,39 +35,43 @@ export class App {
 
   private async handleRequest(req: IncomingMessage, res: ServerResponse) {
     const outMsg = this.isWorker
-      ? `Worker ${this.workerIndex} on port ${styleText('yellow', String(this.port))} (PID: ${styleText(
+      ? `Worker ${styleText('yellow', String(this.workerIndex))} on port ${styleText('yellow', String(this.port))} (PID: ${styleText(
           'yellow',
           String(process.pid)
-        )}) handling request: ${styleText('yellow', String(req.method))}`
-      : `Handling request: ${styleText('yellow', String(req.method))}`;
+        )}) handling request: ${styleText('green', String(req.method))}`
+      : `Handling request: ${styleText('green', String(req.method))}`;
 
     console.log(outMsg);
 
     const data = await parseRequest(req);
 
-    if (data.error) {
-      res.writeHead(data.error.statusCode ?? 500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(errorDetails(data.error)));
-    } else if (this.isWorker) {
-      this.actions?.set(data.id, (msg) => {
-        res.writeHead(msg.code ?? 200, { 'Content-Type': 'application/json' });
-        res.end(msg.data ? JSON.stringify(msg.data) : '');
-      });
-      process.send?.(data);
-    } else if (this.storage) {
-      const msg = callDb(data, this.storage);
+    const endResponse = (msg: DbMessage) => {
       res.writeHead(msg.error ? msg.error.statusCode : (msg.code ?? 200), {
         'Content-Type': 'application/json',
       });
       const strData = msg.data ? JSON.stringify(msg.data) : '';
       res.end(msg.error ? JSON.stringify(errorDetails(msg.error)) : strData);
+    };
+
+    if (data.error) {
+      res.writeHead(data.error.statusCode ?? 500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(errorDetails(data.error)));
+    } else if (this.isWorker) {
+      this.actions?.set(data.id, endResponse);
+      process.send?.(data);
+    } else if (this.storage) {
+      const msg = callDb(data, this.storage);
+      endResponse(msg);
     }
   }
 
   public listen(): void {
     this.server.listen(this.port, () => {
       const outMsg = this.isWorker
-        ? `Worker ${this.workerIndex} is running on port ${styleText('yellow', String(this.port))} (PID: ${styleText('yellow', String(process.pid))})`
+        ? `Worker ${styleText('yellow', String(this.workerIndex))} is running on port ${styleText(
+            'yellow',
+            String(this.port)
+          )} (PID: ${styleText('yellow', String(process.pid))})`
         : `Server is running on port ${this.port} (PID: ${styleText('yellow', String(process.pid))})`;
       console.log(outMsg);
       if (this.isWorker) process.send?.('worker-ready');
