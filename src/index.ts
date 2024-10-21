@@ -17,7 +17,7 @@ dotenv.config();
 const startPort = getPort(process.env.GRUD_API_PORT);
 
 if (isMultiMode && cluster.isPrimary) {
-  console.log(`Primary ${styleText('yellow', String(process.pid))} is running...`);
+  console.log(`Primary (PID: ${styleText('yellow', String(process.pid))}) is running...`);
   const reduction = 1;
   const numWorkers = cpus().length - reduction;
   const loadBalancerPort = startPort;
