@@ -1,4 +1,5 @@
-import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { createServer, IncomingMessage, ServerResponse } from 'node:http';
+import { styleText } from 'node:util';
 import { parseRequest } from '../routes/routes';
 import { DbMessage } from '../types';
 import { DataStorage } from '../db/dataStorage';
@@ -34,8 +35,11 @@ export class App {
 
   private async handleRequest(req: IncomingMessage, res: ServerResponse) {
     const outMsg = this.isWorker
-      ? `Worker ${this.workerIndex} on port ${this.port} (PID: ${process.pid}) handling request: ${req.method}`
-      : `Handling request: ${req.method}`;
+      ? `Worker ${this.workerIndex} on port ${styleText('yellow', String(this.port))} (PID: ${styleText(
+          'yellow',
+          String(process.pid)
+        )}) handling request: ${styleText('yellow', String(req.method))}`
+      : `Handling request: ${styleText('yellow', String(req.method))}`;
 
     console.log(outMsg);
 
@@ -63,8 +67,8 @@ export class App {
   public listen(): void {
     this.server.listen(this.port, () => {
       const outMsg = this.isWorker
-        ? `Worker ${this.workerIndex} is running on port ${this.port} (PID: ${process.pid})`
-        : `Server is running on port ${this.port} (PID: ${process.pid})`;
+        ? `Worker ${this.workerIndex} is running on port ${styleText('yellow', String(this.port))} (PID: ${styleText('yellow', String(process.pid))})`
+        : `Server is running on port ${this.port} (PID: ${styleText('yellow', String(process.pid))})`;
       console.log(outMsg);
       if (this.isWorker) process.send?.('worker-ready');
     });

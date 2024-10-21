@@ -2,6 +2,7 @@ import cluster from 'node:cluster';
 import { DataStorage } from './dataStorage';
 import { UserDb, DbMessage } from '../types';
 import { ResponseError } from '../utils/errors';
+import { err, LogPrefix } from '../utils/logger';
 import { MESSAGES } from '../config';
 
 export function startDb(): DataStorage | null {
@@ -27,7 +28,7 @@ export function startDb(): DataStorage | null {
               code: 500,
               error: ResponseError.new(MESSAGES.unknownAction, 500).serialize(),
             });
-            console.error(`${MESSAGES.unknownAction}: ${action}`);
+            err(LogPrefix.error, `${MESSAGES.unknownAction}: ${action}`);
           }
         });
       }

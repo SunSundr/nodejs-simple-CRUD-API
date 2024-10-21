@@ -2,17 +2,19 @@ import cluster from 'node:cluster';
 import * as http from 'node:http';
 import { cpus } from 'node:os';
 import * as dotenv from 'dotenv';
+import { styleText } from 'node:util';
 import { App } from './app/app';
 import { startDb } from './db/inPrimary';
 import { getPort } from './utils/getPort';
+import { log, LogPrefix } from './utils/logger';
 
 dotenv.config();
 const startPort = getPort(process.env.GRUD_API_PORT);
 
-const isMultiMode = process.env.MODE === 'multi';
+const isMultiMode = process.env.MODE !== 'multi';
 
 if (isMultiMode && cluster.isPrimary) {
-  console.log(`Primary ${process.pid} is running...`);
+  console.log(`Primary ${styleText('yellow', String(process.pid))} is running...`);
 
   const numCPUs = cpus().length;
   const loadBalancerPort = startPort;
@@ -29,7 +31,7 @@ if (isMultiMode && cluster.isPrimary) {
         workersReady++;
 
         if (workersReady === numCPUs) {
-          console.log('All workers are ready');
+          log(LogPrefix.info, 'All workers are ready');
 
           const loadBalancer = http.createServer((req, res) => {
             const targetPort = workerPorts[currentWorkerIndex];
@@ -53,8 +55,14 @@ if (isMultiMode && cluster.isPrimary) {
 
           loadBalancer.listen(loadBalancerPort, () => {
             startDb();
-            console.log(`Load balancer is running on port ${loadBalancerPort}`);
-            console.log('System is fully operational: Load balancer and all workers are running');
+            console.log(
+              LogPrefix.info,
+              `Load balancer is running on port ${styleText('yellow', String(loadBalancerPort))}`
+            );
+            console.log(
+              LogPrefix.done,
+              'System is fully operational: Load balancer and all workers are running'
+            );
             worker.off('message', handler);
           });
         }

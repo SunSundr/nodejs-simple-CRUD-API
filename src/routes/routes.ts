@@ -4,6 +4,7 @@ import { validate as isUUID } from 'uuid';
 import { DbMessage } from '../types';
 import { testUserDb } from '../utils/validators';
 import { ResponseError } from '../utils/errors';
+import { log, err, LogPrefix } from '../utils/logger';
 import { MESSAGES } from '../config';
 
 async function getRequestBody(req: IncomingMessage): Promise<unknown> {
@@ -30,23 +31,29 @@ export async function parseRequest(req: IncomingMessage): Promise<DbMessage> {
   const { pathname } = parsedUrl;
   const id = `${process.pid}-${Date.now()}`;
 
-  const endpointInvalid = (): DbMessage => ({
-    id,
-    code: 404,
-    action: 'error',
-    error: ResponseError.new(MESSAGES.endpointInvalid, 404),
-  });
+  const endpointInvalid = (): DbMessage => {
+    err(LogPrefix.error, MESSAGES.endpointInvalid, 404);
 
-  const jsonInvalid = (): DbMessage => ({
-    id,
-    code: 400,
-    action: 'error',
-    error: ResponseError.new(MESSAGES.jsonInvalid, 400),
-  });
+    return {
+      id,
+      code: 404,
+      action: 'error',
+      error: ResponseError.new(MESSAGES.endpointInvalid, 404),
+    };
+  };
+
+  const jsonInvalid = (): DbMessage => {
+    err(LogPrefix.error, MESSAGES.jsonInvalid, 400);
+
+    return {
+      id,
+      code: 400,
+      action: 'error',
+      error: ResponseError.new(MESSAGES.jsonInvalid, 400),
+    };
+  };
 
   if (!pathname || !/^\/api\/users(\/|$)/.test(pathname)) {
-    console.log(404, 'Not found');
-
     return endpointInvalid();
   }
 
@@ -56,7 +63,7 @@ export async function parseRequest(req: IncomingMessage): Promise<DbMessage> {
   if (segments.length > 3) return endpointInvalid();
 
   if (segments.length === 3 && !isUUID(userId)) {
-    console.log('Invalid userId', 404);
+    err(LogPrefix.error, MESSAGES.uuidInvalid, 400);
 
     return {
       id,
@@ -69,13 +76,13 @@ export async function parseRequest(req: IncomingMessage): Promise<DbMessage> {
   switch (req.method) {
     case 'GET':
       if (segments.length === 2) {
-        console.log('allUsers');
+        log(LogPrefix.action, 'allUsers');
 
         return { id, action: 'allUsers' };
       }
 
       if (segments.length === 3) {
-        console.log('getUser');
+        log(LogPrefix.action, 'getUser');
 
         return { id, action: 'getUser', data: [userId] };
       }
@@ -92,11 +99,13 @@ export async function parseRequest(req: IncomingMessage): Promise<DbMessage> {
       if (segments.length !== 2) return endpointInvalid();
       try {
         const body = await getRequestBody(req);
-        console.log('setUser');
+        log(LogPrefix.action, 'setUser');
         const validateBody = testUserDb(body);
         if (validateBody.length === 0) {
           return { id, code: 201, action: 'setUser', data: [body] };
         }
+
+        log(LogPrefix.error, MESSAGES.bodyInvalid, 400);
 
         return {
           id,
@@ -112,11 +121,13 @@ export async function parseRequest(req: IncomingMessage): Promise<DbMessage> {
     case 'PUT': {
       try {
         const body = await getRequestBody(req);
-        console.log('updateUser');
+        log(LogPrefix.action, 'updateUser');
         const validateBody = testUserDb(body);
         if (validateBody.length === 0) {
           return { id, action: 'updateUser', data: [userId, body] };
         }
+
+        log(LogPrefix.error, MESSAGES.bodyInvalid, 400);
 
         return {
           id,
@@ -130,11 +141,13 @@ export async function parseRequest(req: IncomingMessage): Promise<DbMessage> {
     }
 
     case 'DELETE':
-      console.log('deleteUser');
+      log(LogPrefix.action, 'deleteUser');
 
       return { id, code: 204, action: 'deleteUser', data: [userId] };
 
     default:
+      log(LogPrefix.error, MESSAGES.notAllowed, 405);
+
       return {
         id,
         code: 405,
