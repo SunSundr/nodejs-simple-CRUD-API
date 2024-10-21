@@ -5,9 +5,9 @@
   "main": "src/index.ts",
   "scripts": {
     "start:dev": "nodemon",
-    "start:multi": "nodemon -- --multi-node",
+    "start:multi": "nodemon -- --multi",
     "start:prod": "webpack --mode=production --node-env=production && node build/CRUD-API-app.js",
-    "start:prod:multi": "webpack --mode=production --node-env=production && node build/CRUD-API-app.js --multi-node",
+    "start:prod:multi": "webpack --mode=production --node-env=production && node build/CRUD-API-app.js --multi",
     "build:dev": "webpack --mode=development",
     "build:prod": "webpack --mode=production --node-env=production",
     "watch": "webpack --watch",

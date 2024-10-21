@@ -3,34 +3,37 @@ import * as http from 'node:http';
 import { cpus } from 'node:os';
 import * as dotenv from 'dotenv';
 import { styleText } from 'node:util';
+import { parseArgv } from './utils/parseArgs';
 import { App } from './app/app';
 import { startDb } from './db/inPrimary';
 import { getPort } from './utils/getPort';
 import { log, LogPrefix } from './utils/logger';
 
+const argvOptions = parseArgv();
+const isMultiMode = !!argvOptions.multi;
+process.env.MULTI_MODE = isMultiMode ? 'multi' : undefined;
+
 dotenv.config();
 const startPort = getPort(process.env.GRUD_API_PORT);
 
-const isMultiMode = process.env.MODE === 'multi';
-
 if (isMultiMode && cluster.isPrimary) {
   console.log(`Primary ${styleText('yellow', String(process.pid))} is running...`);
-
-  const numCPUs = cpus().length;
+  const reduction = 1;
+  const numWorkers = cpus().length - reduction;
   const loadBalancerPort = startPort;
-  const workerPorts = Array.from({ length: numCPUs }, (_, i) => loadBalancerPort + 1 + i);
+  const workerPorts = Array.from({ length: numWorkers }, (_, i) => loadBalancerPort + 1 + i);
 
   let workersReady = 0;
   let currentWorkerIndex = 0;
 
-  for (let i = 0; i < numCPUs; i++) {
+  for (let i = 0; i < numWorkers; i++) {
     const worker = cluster.fork({ WORKER_PORT: workerPorts[i], WORKER_INDEX: i + 1 });
 
     const handler = (message: string) => {
       if (message === 'worker-ready') {
         workersReady++;
 
-        if (workersReady === numCPUs) {
+        if (workersReady === numWorkers) {
           log(LogPrefix.info, 'All workers are ready');
 
           const loadBalancer = http.createServer((req, res) => {
@@ -50,7 +53,7 @@ if (isMultiMode && cluster.isPrimary) {
             });
 
             req.pipe(proxyRequest, { end: true });
-            currentWorkerIndex = (currentWorkerIndex + 1) % numCPUs;
+            currentWorkerIndex = (currentWorkerIndex + 1) % numWorkers;
           });
 
           loadBalancer.listen(loadBalancerPort, () => {
@@ -61,7 +64,7 @@ if (isMultiMode && cluster.isPrimary) {
             );
             console.log(
               LogPrefix.done,
-              'System is fully operational: Load balancer and all workers are running'
+              `System is fully operational: Load balancer and ${styleText('yellow', String(numWorkers))} workers are running`
             );
             worker.off('message', handler);
           });
