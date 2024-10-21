@@ -3,10 +3,10 @@ import { parseRequest } from '../routes/routes';
 import { DbMessage } from '../types';
 import { DataStorage } from '../db/dataStorage';
 import { callDb } from '../db/inSingle';
-import { errorMessage } from '../utils/errors';
+import { errorDetails } from '../utils/errors';
 
 export class App {
-  private readonly server!: ReturnType<typeof createServer>;
+  public readonly server!: ReturnType<typeof createServer>;
   public port: number;
   private readonly workerIndex: number;
   private readonly isWorker: boolean;
@@ -43,7 +43,7 @@ export class App {
 
     if (data.error) {
       res.writeHead(data.error.statusCode ?? 500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(errorMessage(data.error.message)));
+      res.end(JSON.stringify(errorDetails(data.error)));
     } else if (this.isWorker) {
       this.actions?.set(data.id, (msg) => {
         res.writeHead(msg.code ?? 200, { 'Content-Type': 'application/json' });
@@ -56,7 +56,7 @@ export class App {
         'Content-Type': 'application/json',
       });
       const strData = msg.data ? JSON.stringify(msg.data) : '';
-      res.end(msg.error ? JSON.stringify(errorMessage(msg.error.message)) : strData);
+      res.end(msg.error ? JSON.stringify(errorDetails(msg.error)) : strData);
     }
   }
 

@@ -6,4 +6,5 @@ export const MESSAGES = {
   endpointInvalid: 'Invalid endpoint',
   uuidInvalid: 'userId is invalid (not uuid)',
   unknownAction: 'Unknown action',
+  jsonInvalid: 'Invalid JSON format',
 };

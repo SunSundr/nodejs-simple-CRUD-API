@@ -33,12 +33,12 @@ export class DataStorage {
     return isExist ? true : this.notFoundError(id);
   }
 
-  updateUser(id: UUID4, userData: UserDb): boolean | Error {
+  updateUser(id: UUID4, userData: UserDb): User | Error {
     const user = this.storage.get(id);
     if (user) {
       this.storage.set(id, userData);
 
-      return true;
+      return { id, ...userData };
     }
 
     return this.notFoundError(id);

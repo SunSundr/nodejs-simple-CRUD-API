@@ -2,7 +2,7 @@ import { IncomingMessage } from 'node:http';
 import { parse } from 'node:url';
 import { validate as isUUID } from 'uuid';
 import { DbMessage } from '../types';
-import { isUserDb } from '../utils/validators';
+import { testUserDb } from '../utils/validators';
 import { ResponseError } from '../utils/errors';
 import { MESSAGES } from '../config';
 
@@ -35,6 +35,13 @@ export async function parseRequest(req: IncomingMessage): Promise<DbMessage> {
     code: 404,
     action: 'error',
     error: ResponseError.new(MESSAGES.endpointInvalid, 404),
+  });
+
+  const jsonInvalid = (): DbMessage => ({
+    id,
+    code: 400,
+    action: 'error',
+    error: ResponseError.new(MESSAGES.jsonInvalid, 400),
   });
 
   if (!pathname || !/^\/api\/users(\/|$)/.test(pathname)) {
@@ -82,34 +89,44 @@ export async function parseRequest(req: IncomingMessage): Promise<DbMessage> {
       };
 
     case 'POST': {
-      if (segments.length > 2) return endpointInvalid();
-      const body = await getRequestBody(req);
-      console.log('setUser');
-      if (isUserDb(body)) {
-        return { id, code: 201, action: 'setUser', data: [body] };
-      }
+      if (segments.length !== 2) return endpointInvalid();
+      try {
+        const body = await getRequestBody(req);
+        console.log('setUser');
+        const validateBody = testUserDb(body);
+        if (validateBody.length === 0) {
+          return { id, code: 201, action: 'setUser', data: [body] };
+        }
 
-      return {
-        id,
-        code: 400,
-        action: 'error',
-        error: ResponseError.new(MESSAGES.bodyInvalid, 400),
-      };
+        return {
+          id,
+          code: 400,
+          action: 'error',
+          error: ResponseError.new(MESSAGES.bodyInvalid, 400, validateBody),
+        };
+      } catch {
+        return jsonInvalid();
+      }
     }
 
     case 'PUT': {
-      const body = await getRequestBody(req);
-      console.log('updateUser');
-      if (isUserDb(body)) {
-        return { id, action: 'updateUser', data: [userId, body] };
-      }
+      try {
+        const body = await getRequestBody(req);
+        console.log('updateUser');
+        const validateBody = testUserDb(body);
+        if (validateBody.length === 0) {
+          return { id, action: 'updateUser', data: [userId, body] };
+        }
 
-      return {
-        id,
-        code: 400,
-        action: 'error',
-        error: ResponseError.new(MESSAGES.bodyInvalid, 400),
-      };
+        return {
+          id,
+          code: 400,
+          action: 'error',
+          error: ResponseError.new(MESSAGES.bodyInvalid, 400, validateBody),
+        };
+      } catch {
+        return jsonInvalid();
+      }
     }
 
     case 'DELETE':

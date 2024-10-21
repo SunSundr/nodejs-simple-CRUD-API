@@ -21,6 +21,12 @@ export type ResponseErrorProperties = {
   message: string;
   statusCode?: number;
   body?: ResponseErrorBody;
+  detailedMessage?: string[];
+};
+
+export type ErrorDetailsMessage = {
+  message: string;
+  detailedMessage?: string[];
 };
 
 export class ResponseError extends Error {
@@ -40,8 +46,13 @@ export class ResponseError extends Error {
     return new ResponseError('Unknown error', 'Error', 0);
   };
 
-  static new = (message: string, statusCode = 0, name = 'error'): ResponseError =>
-    new ResponseError(message, name, statusCode);
+  static new = (
+    message: string,
+    statusCode = 0,
+    detailedMessage: string[] | undefined = undefined,
+    name = 'error'
+  ): ResponseError =>
+    new ResponseError(message, name, statusCode, undefined, undefined, detailedMessage);
 
   private readonly isSerializable = (obj: unknown): boolean => {
     try {
@@ -60,7 +71,8 @@ export class ResponseError extends Error {
     public override name: string,
     public statusCode: number,
     public override stack?: string,
-    private readonly bodyUnknown?: unknown
+    private readonly bodyUnknown?: unknown,
+    public detailedMessage?: string[]
   ) {
     super(message);
     this.body = this.parseBody(bodyUnknown);
@@ -92,10 +104,18 @@ export class ResponseError extends Error {
       message: this.message,
       statusCode: this.statusCode,
       ...body,
+      detailedMessage: this.detailedMessage,
     };
   }
 }
 
 export function errorMessage(msg: string | undefined | null): { message: string } {
   return { message: msg ?? '?' };
+}
+
+export function errorDetails(error: ResponseError): ErrorDetailsMessage {
+  return {
+    message: error.message,
+    ...(error.detailedMessage ? { detailedMessage: error.detailedMessage } : {}),
+  };
 }
